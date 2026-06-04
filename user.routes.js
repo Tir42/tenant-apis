@@ -4,15 +4,17 @@ const User = require("./user.model");
 
 const router = express.Router();
 
+// REGISTER USER
 router.post("/register", async (req, res) => {
     try {
-        const {
-            firstName,
-            lastName,
-            email,
-            fullPhoneNumber,
-            password,
-        } = req.body;
+        const { firstName, lastName, email, fullPhoneNumber, password } = req.body;
+
+        if (!firstName || !lastName || !email || !fullPhoneNumber || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
 
         const existingUser = await User.findOne({
             $or: [{ email }, { fullPhoneNumber }],
@@ -25,9 +27,13 @@ router.post("/register", async (req, res) => {
             });
         }
 
+        const lastUser = await User.findOne().sort({ userId: -1 });
+        const newUserId = lastUser && lastUser.userId ? lastUser.userId + 1 : 1;
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
+            userId: newUserId,
             firstName,
             lastName,
             email,
@@ -35,10 +41,24 @@ router.post("/register", async (req, res) => {
             password: hashedPassword,
         });
 
+        console.log("Saved user data:", {
+            userId: user.userId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            fullPhoneNumber: user.fullPhoneNumber,
+        });
+
         res.status(201).json({
             success: true,
             message: "User registered successfully",
-            data: user,
+            data: {
+                userId: user.userId,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                fullPhoneNumber: user.fullPhoneNumber,
+            },
         });
     } catch (error) {
         res.status(500).json({
@@ -47,6 +67,7 @@ router.post("/register", async (req, res) => {
         });
     }
 });
+
 // LOGIN USER
 router.post("/login", async (req, res) => {
     try {
@@ -81,7 +102,7 @@ router.post("/login", async (req, res) => {
             success: true,
             message: "Login successful",
             data: {
-                id: user._id,
+                userId: user.userId,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
@@ -95,4 +116,5 @@ router.post("/login", async (req, res) => {
         });
     }
 });
+
 module.exports = router;
