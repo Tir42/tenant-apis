@@ -9,6 +9,9 @@ const app = express();
 const userRoutes = require("./user.routes");
 const propertyRoutes = require("./property.routes");
 const inspectionRoutes = require("./inspection.routes");
+const uploadRoutes = require("./upload.routes");
+
+app.use('/uploads', express.static('uploads'));
 
 
 
@@ -20,6 +23,7 @@ connectDB();
 app.use("/api/users", userRoutes);
 app.use("/api/property", propertyRoutes);
 app.use("/api/inspection", inspectionRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tenant APIs running successfully");
