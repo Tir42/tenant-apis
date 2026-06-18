@@ -1,13 +1,11 @@
-const express = require("express");
-const Inspection = require("./inspection.model");
-
-const router = express.Router();
+const Inspection = require("../models/inspection.model");
+const PDFDocument = require("pdfkit");
 
 const generateInspectionId = () => {
     return "INS" + Math.floor(100000 + Math.random() * 900000);
 };
 
-router.post("/create", async (req, res) => {
+const createInspection = async (req, res) => {
     try {
         const { rooms } = req.body;
 
@@ -27,12 +25,9 @@ router.post("/create", async (req, res) => {
             message: error.message,
         });
     }
-});
+};
 
-const PDFDocument = require("pdfkit");
-
-// GET inspection PDF by inspectionId
-router.get("/pdf/:inspectionId", async (req, res) => {
+const getInspectionPdf = async (req, res) => {
     try {
         const { inspectionId } = req.params;
 
@@ -87,6 +82,9 @@ router.get("/pdf/:inspectionId", async (req, res) => {
             message: error.message,
         });
     }
-});
+};
 
-module.exports = router;
+module.exports = {
+    createInspection,
+    getInspectionPdf,
+};

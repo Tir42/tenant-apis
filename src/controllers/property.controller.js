@@ -1,9 +1,6 @@
-const express = require("express");
-const Property = require("./property.model");
+const Property = require("../models/property.model");
 
-const router = express.Router();
-
-router.post("/create", async (req, res) => {
+const createProperty = async (req, res) => {
   try {
     const {
       idCode,
@@ -49,6 +46,8 @@ router.post("/create", async (req, res) => {
       message: error.message,
     });
   }
-});
+};
 
-module.exports = router;
+module.exports = {
+  createProperty,
+};

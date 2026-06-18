@@ -1,18 +1,17 @@
-const express = require("express");
 const bcrypt = require("bcryptjs");
-const User = require("./user.model");
-
-const router = express.Router();
+const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
 
 // REGISTER USER
-router.post("/register", async (req, res) => {
+const registerUser = async (req, res) => {
     try {
-        const { firstName, lastName, email, fullPhoneNumber, password } = req.body;
+        const { firstName, lastName, email, fullPhoneNumber, password, idCode, id_code } = req.body;
+        const finalIdCode = idCode || id_code;
 
-        if (!firstName || !lastName || !email || !fullPhoneNumber || !password) {
+        if (!firstName || !lastName || !email || !fullPhoneNumber || !password || !finalIdCode) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required",
+                message: "All fields are required (including idCode/id_code)",
             });
         }
 
@@ -39,6 +38,7 @@ router.post("/register", async (req, res) => {
             email,
             fullPhoneNumber,
             password: hashedPassword,
+            idCode: finalIdCode,
         });
 
         console.log("Saved user data:", {
@@ -47,6 +47,7 @@ router.post("/register", async (req, res) => {
             lastName: user.lastName,
             email: user.email,
             fullPhoneNumber: user.fullPhoneNumber,
+            idCode: user.idCode,
         });
 
         res.status(201).json({
@@ -58,6 +59,7 @@ router.post("/register", async (req, res) => {
                 lastName: user.lastName,
                 email: user.email,
                 fullPhoneNumber: user.fullPhoneNumber,
+                id_code: user.idCode,
             },
         });
     } catch (error) {
@@ -66,10 +68,10 @@ router.post("/register", async (req, res) => {
             message: error.message,
         });
     }
-});
+};
 
 // LOGIN USER
-router.post("/login", async (req, res) => {
+const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -98,15 +100,26 @@ router.post("/login", async (req, res) => {
             });
         }
 
+        const token = jwt.sign(
+            { userId: user.userId, email: user.email },
+            process.env.JWT_SECRET || "default_jwt_secret_fallback",
+            { expiresIn: "7d" }
+        );
+
         res.status(200).json({
             success: true,
             message: "Login successful",
+            token,
+            idCode: user.idCode,
+            id_code: user.idCode,
             data: {
                 userId: user.userId,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
                 fullPhoneNumber: user.fullPhoneNumber,
+                idCode: user.idCode,
+                id_code: user.idCode,
             },
         });
     } catch (error) {
@@ -115,6 +128,9 @@ router.post("/login", async (req, res) => {
             message: error.message,
         });
     }
-});
+};
 
-module.exports = router;
+module.exports = {
+    registerUser,
+    loginUser,
+};

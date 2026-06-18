@@ -1,17 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const connectDB = require("./db");
+const path = require("path");
+const connectDB = require("./config/db");
 
 dotenv.config();
 
 const app = express();
-const userRoutes = require("./user.routes");
-const propertyRoutes = require("./property.routes");
-const inspectionRoutes = require("./inspection.routes");
-const uploadRoutes = require("./upload.routes");
+const userRoutes = require("./routes/user.routes");
+const propertyRoutes = require("./routes/property.routes");
+const inspectionRoutes = require("./routes/inspection.routes");
+const uploadRoutes = require("./routes/upload.routes");
 
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
 
