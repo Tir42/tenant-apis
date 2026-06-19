@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
+const sendEmail = require("../utils/sendEmail");
 
 // REGISTER USER
 const registerUser = async (req, res) => {
@@ -130,7 +131,119 @@ const loginUser = async (req, res) => {
     }
 };
 
+// FORGOT PASSWORD (EMAIL OTP GENERATION)
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required",
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        user.resetOtp = otp;
+        user.resetOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+
+        await user.save();
+
+        // Send actual email using the utility
+        await sendEmail({
+            to: user.email,
+            subject: "Your OTP for Password Reset",
+            text: `Hello ${user.firstName},\n\nYou requested a password reset. Your OTP code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`,
+            html: `<p>Hello <strong>${user.firstName}</strong>,</p>
+                   <p>You requested a password reset. Your OTP code is:</p>
+                   <h2 style="color: #4A90E2; font-size: 24px; letter-spacing: 2px;">${otp}</h2>
+                   <p>This code will expire in 10 minutes.</p>
+                   <p>If you did not request this, please ignore this email.</p>`
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "OTP sent to email address successfully",
+            otp,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// RESET PASSWORD
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword, confirmPassword } = req.body;
+
+        if (!email || !otp || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required (email, otp, newPassword, confirmPassword)",
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match",
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        if (!user.resetOtp || user.resetOtp !== otp || !user.resetOtpExpires || user.resetOtpExpires < Date.now()) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired OTP",
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        user.password = hashedPassword;
+        user.resetOtp = undefined;
+        user.resetOtpExpires = undefined;
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
+    forgotPassword,
+    resetPassword,
 };
