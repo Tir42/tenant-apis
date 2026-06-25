@@ -185,6 +185,30 @@ const forgotPassword = async (req, res) => {
     }
 };
 
+router.get("/check-email", async (req, res) => {
+    const { email } = req.query;
+
+    const user = await User.findOne({ email });
+
+    res.json({ exists: !!user });
+});
+
+router.get("/check-phone", async (req, res) => {
+    const { phone } = req.query;
+
+    const user = await User.findOne({ fullPhoneNumber: phone });
+
+    res.json({ exists: !!user });
+});
+
+router.get("/check-idcode", async (req, res) => {
+    const { idCode } = req.query;
+
+    const user = await User.findOne({ idCode });
+
+    res.json({ exists: !!user });
+});
+
 // RESET PASSWORD
 const resetPassword = async (req, res) => {
     try {
