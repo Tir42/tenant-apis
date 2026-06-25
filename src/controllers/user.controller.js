@@ -185,29 +185,35 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-router.get("/check-email", async (req, res) => {
-    const { email } = req.query;
+const checkEmail = async (req, res) => {
+    try {
+        const { email } = req.query;
+        const user = await User.findOne({ email });
+        res.json({ exists: !!user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
-    const user = await User.findOne({ email });
+const checkPhone = async (req, res) => {
+    try {
+        const { phone } = req.query;
+        const user = await User.findOne({ fullPhoneNumber: phone });
+        res.json({ exists: !!user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
-    res.json({ exists: !!user });
-});
-
-router.get("/check-phone", async (req, res) => {
-    const { phone } = req.query;
-
-    const user = await User.findOne({ fullPhoneNumber: phone });
-
-    res.json({ exists: !!user });
-});
-
-router.get("/check-idcode", async (req, res) => {
-    const { idCode } = req.query;
-
-    const user = await User.findOne({ idCode });
-
-    res.json({ exists: !!user });
-});
+const checkIdCode = async (req, res) => {
+    try {
+        const { idCode } = req.query;
+        const user = await User.findOne({ idCode });
+        res.json({ exists: !!user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 // RESET PASSWORD
 const resetPassword = async (req, res) => {
@@ -270,4 +276,7 @@ module.exports = {
     loginUser,
     forgotPassword,
     resetPassword,
+    checkEmail,
+    checkPhone,
+    checkIdCode,
 };

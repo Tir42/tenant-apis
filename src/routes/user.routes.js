@@ -15,4 +15,13 @@ router.post("/forgot-password", userController.forgotPassword);
 // RESET PASSWORD
 router.post("/reset-password", userController.resetPassword);
 
+// CHECK EMAIL
+router.get("/check-email", userController.checkEmail);
+
+// CHECK PHONE
+router.get("/check-phone", userController.checkPhone);
+
+// CHECK ID CODE
+router.get("/check-idcode", userController.checkIdCode);
+
 module.exports = router;
