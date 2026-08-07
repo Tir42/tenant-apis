@@ -6,11 +6,16 @@ const pdfHistoryController = require("../controllers/pdfHistory.controller");
 
 const router = express.Router();
 
-// Ensure uploads folder exists
+// Ensure uploads folder exists (wrapped in try-catch for read-only serverless environments like Vercel)
 const uploadDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn("Could not create uploads directory (expected in read-only serverless environments):", err.message);
 }
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
