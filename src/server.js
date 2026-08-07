@@ -4,7 +4,11 @@ const dotenv = require("dotenv");
 const path = require("path");
 const dns = require("dns");
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+} catch (e) {
+  console.warn("Could not set custom DNS servers:", e);
+}
 
 const connectDB = require("./config/db");
 
@@ -66,6 +70,10 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
