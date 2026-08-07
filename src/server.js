@@ -15,6 +15,7 @@ const userRoutes = require("./routes/user.routes");
 const propertyRoutes = require("./routes/property.routes");
 const inspectionRoutes = require("./routes/inspection.routes");
 const uploadRoutes = require("./routes/upload.routes");
+const pdfHistoryRoutes = require("./routes/pdfHistory.routes");
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -57,6 +58,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/property", propertyRoutes);
 app.use("/api/inspection", inspectionRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/pdf-history", pdfHistoryRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tenant APIs running successfully");

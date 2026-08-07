@@ -1,5 +1,7 @@
 const Inspection = require("../models/inspection.model");
 const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 
 const generateInspectionId = () => {
     return "INS" + Math.floor(100000 + Math.random() * 900000);
@@ -68,7 +70,40 @@ const getInspectionPdf = async (req, res) => {
                 );
 
                 if (feature.photos && feature.photos.length > 0) {
-                    doc.text(`Photos: ${feature.photos.join(", ")}`);
+                    doc.moveDown(0.5);
+                    feature.photos.forEach((photoPath) => {
+                        const cleanPath = photoPath.startsWith("/") ? photoPath.slice(1) : photoPath;
+                        const fullPath = path.join(process.cwd(), cleanPath);
+
+                        if (fs.existsSync(fullPath)) {
+                            try {
+                                const img = doc.openImage(fullPath);
+                                const isLandscape = img.width > img.height;
+
+                                const fitWidth = isLandscape ? 300 : 200;
+                                const fitHeight = isLandscape ? 200 : 300;
+
+                                const ratio = Math.min(fitWidth / img.width, fitHeight / img.height);
+                                const renderedHeight = img.height * ratio;
+
+                                const spaceRemaining = doc.page.height - doc.page.margins.bottom - doc.y;
+                                if (spaceRemaining < renderedHeight + 30) {
+                                    doc.addPage();
+                                }
+
+                                doc.image(fullPath, {
+                                    fit: [fitWidth, fitHeight],
+                                    align: "center"
+                                });
+                                doc.y += renderedHeight + 10;
+                            } catch (imgErr) {
+                                console.error("Error drawing image in PDF:", imgErr);
+                                doc.fontSize(10).fillColor("red").text(`[Error loading photo: ${path.basename(photoPath)}]`).fillColor("black");
+                            }
+                        } else {
+                            doc.fontSize(10).fillColor("red").text(`[Photo file not found: ${path.basename(photoPath)}]`).fillColor("black");
+                        }
+                    });
                 }
             });
 
