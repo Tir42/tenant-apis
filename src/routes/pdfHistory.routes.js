@@ -33,6 +33,7 @@ router.post("/create", upload.single("pdf"), pdfHistoryController.createPdfHisto
 router.post("/upload-cloudflare", uploadToMemory.single("pdf"), pdfHistoryController.uploadPdfHistoryCloudflare);
 router.get("/", pdfHistoryController.getPdfHistory);
 router.put("/:id", uploadToMemory.single("pdf"), pdfHistoryController.updatePdfHistory);
+router.delete("/:id", pdfHistoryController.deletePdfHistory);
 
 module.exports = router;
 

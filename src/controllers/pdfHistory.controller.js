@@ -1,6 +1,9 @@
+const fs = require("fs");
+const path = require("path");
 const PdfHistory = require("../models/pdfHistory.model");
 const { uploadToR2 } = require("../utils/cloudflareR2");
 
+// create pdf history api
 const createPdfHistory = async (req, res) => {
   try {
     const {
@@ -54,59 +57,57 @@ const createPdfHistory = async (req, res) => {
   }
 };
 
+// Get history list api
 const getPdfHistory = async (req, res) => {
   try {
     const { userName, role, userId } = req.query;
     let query = {};
-
     const parsedUserId = Number(userId);
-    if (userId && !isNaN(parsedUserId) && parsedUserId > 0) {
-      query.userId = parsedUserId;
-    }
 
     if (role) {
       const roleFilter = role.toLowerCase();
+      
+      let roleConditions = [];
+      if (roleFilter === "tenant") {
+        roleConditions = [
+          { role: "tenant" },
+          { role: { $exists: false } },
+          { role: null }
+        ];
+      } else if (roleFilter === "landlord") {
+        roleConditions = [
+          { role: "landlord" }
+        ];
+      }
+
+      let userConditions = [];
+      if (userId && !isNaN(parsedUserId) && parsedUserId > 0) {
+        userConditions.push({ userId: parsedUserId });
+      }
       if (userName) {
         const nameRegex = new RegExp(userName, "i");
         if (roleFilter === "tenant") {
-          query.$or = [
-            { role: "tenant" },
-            {
-              $and: [
-                { role: { $exists: false } },
-                { tenantName: nameRegex }
-              ]
-            },
-            {
-              $and: [
-                { role: null },
-                { tenantName: nameRegex }
-              ]
-            }
-          ];
+          userConditions.push({ tenantName: nameRegex });
         } else if (roleFilter === "landlord") {
-          query.$or = [
-            { role: "landlord" },
-            {
-              $and: [
-                { role: { $exists: false } },
-                { landlordName: nameRegex }
-              ]
-            },
-            {
-              $and: [
-                { role: null },
-                { landlordName: nameRegex }
-              ]
-            }
-          ];
+          userConditions.push({ landlordName: nameRegex });
         }
-      } else {
-        query.role = roleFilter;
       }
-    } else if (userName) {
-      const nameRegex = new RegExp(userName, "i");
-      query.$or = [{ tenantName: nameRegex }, { landlordName: nameRegex }];
+
+      query.$and = [
+        { $or: roleConditions }
+      ];
+
+      if (userConditions.length > 0) {
+        query.$and.push({ $or: userConditions });
+      }
+    } else {
+      if (userId && !isNaN(parsedUserId) && parsedUserId > 0) {
+        query.userId = parsedUserId;
+      }
+      if (userName) {
+        const nameRegex = new RegExp(userName, "i");
+        query.$or = [{ tenantName: nameRegex }, { landlordName: nameRegex }];
+      }
     }
 
     const history = await PdfHistory.find(query).sort({ createdAt: -1 });
@@ -123,6 +124,8 @@ const getPdfHistory = async (req, res) => {
   }
 };
 
+
+// upload pdf history to cloudflare api
 const uploadPdfHistoryCloudflare = async (req, res) => {
   try {
     const {
@@ -179,7 +182,7 @@ const uploadPdfHistoryCloudflare = async (req, res) => {
     });
   }
 };
-
+// Update History
 const updatePdfHistory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -247,9 +250,50 @@ const updatePdfHistory = async (req, res) => {
   }
 };
 
+
+// History delete api 
+const deletePdfHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pdfHistory = await PdfHistory.findById(id);
+
+    if (!pdfHistory) {
+      return res.status(404).json({
+        success: false,
+        message: "PDF history record not found",
+      });
+    }
+
+    // Try deleting local file if it's a local upload
+    if (pdfHistory.pdfUrl && pdfHistory.pdfUrl.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "../..", pdfHistory.pdfUrl);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error("Failed to delete local file:", err);
+        } else {
+          console.log("Successfully deleted local file:", filePath);
+        }
+      });
+    }
+
+    await PdfHistory.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "PDF history record deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createPdfHistory,
   getPdfHistory,
   uploadPdfHistoryCloudflare,
   updatePdfHistory,
+  deletePdfHistory,
 };
