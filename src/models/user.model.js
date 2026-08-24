@@ -41,7 +41,6 @@ const userSchema = new mongoose.Schema(
 
         idCode: {
             type: String,
-            required: true,
             trim: true,
         },
 

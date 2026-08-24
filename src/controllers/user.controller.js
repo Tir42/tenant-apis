@@ -9,10 +9,19 @@ const registerUser = async (req, res) => {
         const { firstName, lastName, email, fullPhoneNumber, password, idCode, id_code } = req.body;
         const finalIdCode = idCode || id_code;
 
-        if (!firstName || !lastName || !email || !fullPhoneNumber || !password || !finalIdCode) {
+        const missingFields = [];
+        if (!firstName) missingFields.push("firstName");
+        if (!lastName) missingFields.push("lastName");
+        if (!email) missingFields.push("email");
+        if (!fullPhoneNumber) missingFields.push("fullPhoneNumber");
+        if (!password) missingFields.push("password");
+
+        if (missingFields.length > 0) {
+            console.log(`Validation failed. Missing fields: ${missingFields.join(", ")}`);
             return res.status(400).json({
                 success: false,
-                message: "All fields are required (including idCode/id_code)",
+                message: `All fields are required. Missing: ${missingFields.join(", ")}`,
+                missingFields
             });
         }
 
