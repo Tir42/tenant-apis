@@ -64,50 +64,52 @@ const getPdfHistory = async (req, res) => {
     let query = {};
     const parsedUserId = Number(userId);
 
+    const isGenericName = !userName || ['tenant', 'landlord'].includes(userName.trim().toLowerCase());
+    const validUserId = userId && !isNaN(parsedUserId) && parsedUserId > 0;
+
+    const andConditions = [];
+
+    // 1. User identification: filter by userId if provided, or by non-generic name
+    if (validUserId) {
+      andConditions.push({ userId: parsedUserId });
+    } else if (!isGenericName) {
+      const nameRegex = new RegExp(userName.trim(), "i");
+      andConditions.push({
+        $or: [
+          { tenantName: nameRegex },
+          { landlordName: nameRegex }
+        ]
+      });
+    }
+
+    // 2. Role filter (if provided, match role or untagged legacy records)
     if (role) {
       const roleFilter = role.toLowerCase();
-      
-      let roleConditions = [];
       if (roleFilter === "tenant") {
-        roleConditions = [
-          { role: "tenant" },
-          { role: { $exists: false } },
-          { role: null }
-        ];
+        andConditions.push({
+          $or: [
+            { role: "tenant" },
+            { role: { $exists: false } },
+            { role: null },
+            { role: "" }
+          ]
+        });
       } else if (roleFilter === "landlord") {
-        roleConditions = [
-          { role: "landlord" }
-        ];
+        andConditions.push({
+          $or: [
+            { role: "landlord" },
+            { role: { $exists: false } },
+            { role: null },
+            { role: "" }
+          ]
+        });
       }
+    }
 
-      let userConditions = [];
-      if (userId && !isNaN(parsedUserId) && parsedUserId > 0) {
-        userConditions.push({ userId: parsedUserId });
-      }
-      if (userName) {
-        const nameRegex = new RegExp(userName, "i");
-        if (roleFilter === "tenant") {
-          userConditions.push({ tenantName: nameRegex });
-        } else if (roleFilter === "landlord") {
-          userConditions.push({ landlordName: nameRegex });
-        }
-      }
-
-      query.$and = [
-        { $or: roleConditions }
-      ];
-
-      if (userConditions.length > 0) {
-        query.$and.push({ $or: userConditions });
-      }
-    } else {
-      if (userId && !isNaN(parsedUserId) && parsedUserId > 0) {
-        query.userId = parsedUserId;
-      }
-      if (userName) {
-        const nameRegex = new RegExp(userName, "i");
-        query.$or = [{ tenantName: nameRegex }, { landlordName: nameRegex }];
-      }
+    if (andConditions.length === 1) {
+      query = andConditions[0];
+    } else if (andConditions.length > 1) {
+      query.$and = andConditions;
     }
 
     const history = await PdfHistory.find(query).sort({ createdAt: -1 });
@@ -123,7 +125,6 @@ const getPdfHistory = async (req, res) => {
     });
   }
 };
-
 
 // upload pdf history to cloudflare api
 const uploadPdfHistoryCloudflare = async (req, res) => {
